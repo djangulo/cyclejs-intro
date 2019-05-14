@@ -1,6 +1,15 @@
 import { run } from '@cycle/run';
-import xstream from 'xstream';
-import { div, label, input, hr, h1, makeDOMDriver } from '@cycle/dom';
+import { default as xs } from 'xstream';
+import {
+    div,
+    label,
+    input,
+    hr,
+    h1,
+    makeDOMDriver,
+    button,
+    p
+} from '@cycle/dom';
 import { getDrivers, wrapMain } from './drivers';
 import { Component, Sources, Sinks } from './interfaces';
 import { App } from './components/app';
@@ -18,22 +27,22 @@ type HTMLElementEvent<T extends HTMLElement> = Event & {
 let e: HTMLElementEvent<HTMLInputElement>;
 
 function main(sources: Sources<State>): Sinks<State> {
-    const inputEv$ = sources.DOM.select('.field').events('input');
-    const name$ = inputEv$
-        .map((ev: HTMLElementEvent<HTMLInputElement>) =>
-            ev.target ? ev.target.value : null
-        )
-        .startWith('');
+    const decClick$ = sources.DOM.select('.dec').events('click');
+    const incClick$ = sources.DOM.select('.inc').events('click');
 
-    // ---w---wo---wor--->
+    const dec$ = decClick$.map(() => -1); // --(-1)----------(-1)-->
+    const inc$ = incClick$.map(() => +1); // --------(+1)---------->
+
+    const delta$ = xs.merge(dec$, inc$); // --(-1)---(+1)----(-1)-->
+
+    const number$ = delta$.fold((prev, x) => prev + x, 0);
 
     return {
-        DOM: xstream.of(
+        DOM: number$.map(number =>
             div([
-                label(['Name:']),
-                input('.field', { attrs: { type: 'text' } }),
-                hr(),
-                h1('Hello ' + name + '!')
+                button('.dec', 'Decrement'),
+                button('.inc', 'Increment'),
+                p([label('Count: ' + number)])
             ])
         )
     };
